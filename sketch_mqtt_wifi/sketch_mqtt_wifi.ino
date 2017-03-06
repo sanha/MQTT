@@ -35,16 +35,9 @@ char ssid[] = "CMS_2.4GHz";
 char pass[] = "cms302420@";  
 // the Wifi radio's status
 int status = WL_IDLE_STATUS; 
-IPAddress server(172, 16, 0, 2);
+IPAddress server(192, 168, 1, 45);
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i=0;i<length;i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
 }
 
 WiFiClient wifiClient;
@@ -99,7 +92,7 @@ void setup()
    
   // you're connected now, so print out the data:
   Serial.print("You're connected to the network ");
-  Serisl.println(ssid);
+  Serial.println(ssid);
 
   client.setServer(server, 1883);
   client.setCallback(callback);
@@ -110,5 +103,6 @@ void loop()
   if (!client.connected()) {
     reconnect();
   }
+  client.publish("topic/state", "arduino", 7);
   client.loop();
 }
