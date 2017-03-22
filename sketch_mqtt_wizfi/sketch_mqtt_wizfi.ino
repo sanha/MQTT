@@ -21,14 +21,14 @@
    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 /*
-  MQTT client connecting with Wi-Fi client.
+  MQTT client connecting with Wiz-Fi client.
 
   It will reconnect to the server if the connection is lost using a blocking
   reconnect function.
 */
 
 #include <SPI.h>
-#include <WiFi.h>
+#include <WizFi250.h>
 #include <PubSubClient.h>
 
 // setting static variables

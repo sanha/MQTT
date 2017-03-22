@@ -1,5 +1,5 @@
 /*
-   Copyright (c) 2008-2015 Nicholas O'Leary
+   Copyright (C) 2017 Seoul National University
 
    Permission is hereby granted, free of charge, to any person obtaining
    a copy of this software and associated documentation files (the
@@ -28,22 +28,34 @@
 */
 
 #include <SPI.h>
-#include <WiFi.h>
+#include <Ethernet.h>
 #include <PubSubClient.h>
 
 // setting static variables
-char ssid[] = "CMS_2.4GHz";
-char pass[] = "cms302420@";
-char topic[] = "arduinoTest";
+char topic[] = "MISTExamplePub";
 char clientId[] = "arduinoClient";
-int status = WL_IDLE_STATUS;
+byte mac[]    = {  0x98, 0x83, 0x89, 0x21, 0x6A, 0x6E };
+IPAddress ip(192, 168, 1, 205);
 IPAddress server(192, 168, 1, 45);
+int ledPin = 7;
 
-WiFiClient wifiClient;
-PubSubClient client(wifiClient);
-int count;
+EthernetClient ethClient;
+PubSubClient client(ethClient);
 
 void callback(char* topic, byte* payload, unsigned int length) {
+  // print the message
+  /*Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");*/
+  String strPayload = String((char *) payload);
+  Serial.println(strPayload);
+
+  // handle the led output
+  if (strPayload.startsWith("ON")) {
+    digitalWrite(ledPin, HIGH);
+  } else if (strPayload.startsWith("OFF")) {
+    digitalWrite(ledPin, LOW);
+  }
 }
 
 void reconnect() {
@@ -53,49 +65,38 @@ void reconnect() {
     // Attempt to connect
     if (client.connect(clientId)) {
       Serial.println("connected");
+      if (client.subscribe(topic, 0)) {
+        Serial.println("Subscription success.");
+      } else {
+        Serial.println("Subscription is failed.");
+      }
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.println(" try again in 2 seconds");
       // Wait 5 seconds before retrying
-      delay(5000);
+      delay(2000);
     }
   }
 }
 
 void setup()
 {
-  count = 0;
-  //Initialize serial and wait for port to open:
+  // initialize output pin
+  pinMode(ledPin, OUTPUT);
+  
+  // initialize serial and wait for port to open:
   Serial.begin(9600);
   while (!Serial) {
     ; // wait for serial port to connect.
   }
 
-  // check for the presence of the shield:
-  if (WiFi.status() == WL_NO_SHIELD) {
-    Serial.println("WiFi shield not present");
-    // don't continue:
-    while (true);
-  }
-
-  // attempt to connect to Wifi network:
-  while ( status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to WPA SSID: ");
-    Serial.println(ssid);
-    // Connect to WPA/WPA2 network:
-    status = WiFi.begin(ssid, pass);
-
-    // wait 10 seconds for connection:
-    delay(10000);
-  }
-
-  // you're connected now, so print out the data:
-  Serial.print("You're connected to the network ");
-  Serial.println(ssid);
-
   client.setServer(server, 1883);
   client.setCallback(callback);
+
+  Ethernet.begin(mac, ip);
+  // Allow the hardware to sort itself out
+  delay(1500);
 
   reconnect();
 }
@@ -105,25 +106,5 @@ void loop()
   if (!client.connected()) {
     reconnect();
   }
-
-  String cntStr = String(count++);
-  char charBuf[cntStr.length() + 1];
-  cntStr.toCharArray(charBuf, cntStr.length() + 1);
-  client.publish(topic, charBuf);
-
-  long prevMillis = millis();
-  Serial.print("MQTT client connection status: ");
-  Serial.println(client.loop());
-  long currMillis = millis();
-  Serial.print("Looping period: ");
-  Serial.println(currMillis - prevMillis);
-  
-  /*
-  long prevMillis = millis();
-  Serial.print("wifi client is available?: ");
-  Serial.println(wifiClient.available());
-  long currMillis = millis();
-  Serial.print("Looping period: ");
-  Serial.println(currMillis - prevMillis);
-  */
+  client.loop();
 }
